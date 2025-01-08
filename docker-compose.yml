@@ -1,0 +1,24 @@
+version: "3.7"
+
+services:
+
+  postgres:
+    container_name: 'to-do-postgres'
+    image: 'postgres:11.2'
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      - 'POSTGRES_USER=username'
+      - 'POSTGRES_DB=to_do_table'
+      - 'POSTGRES_PASSWORD=password'
+  postgres_two:
+    container_name: 'to-do-postgres_two'
+    image: 'postgres:11.2'
+    restart: always
+    ports:
+      - '5433:5432'
+    environment:
+      - 'POSTGRES_USER=username'
+      - 'POSTGRES_DB=to_do_table'
+      - 'POSTGRES_PASSWORD=password'

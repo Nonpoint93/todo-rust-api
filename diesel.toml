@@ -1,0 +1,10 @@
+# For documentation on how to configure this file,
+# see https://diesel.rs/guides/configuring-diesel-cli
+
+[print_schema]
+file = "src/configuration/schema.rs"
+
+custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
+
+[migrations_directory]
+dir = "/home/kali/Rust/actix_web_project/to_do_api/migrations"
