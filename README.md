@@ -179,8 +179,9 @@ E2E Integration Tests (Actix-web): Validates full HTTP request/response pipeline
 
 📡 API EndpointsMethodEndpointDescription
 
-Method	Endpoint	                    Description
-GET	    /to_do/v1/item	                Retrieves a sorted summary list of all tasks.
-POST	/to_do/v1/item/create	        Creates a new task via JSON payload (defaults to PENDING).
-PUT	    /to_do/v1/item/edit/{title}	    Updates an existing task's status identified by its title.
-DELETE	/to_do/v1/item/delete/{title}	Deletes a task by its title from the URI path.
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **GET** | `/to_do/v1/item` | Retrieves a sorted summary list of all tasks. |
+| **POST** | `/to_do/v1/item/create` | Creates a new task via JSON payload (defaults to `PENDING`). |
+| **PUT** | `/to_do/v1/item/edit/{title}` | Updates an existing task's status identified by its title. |
+| **DELETE** | `/to_do/v1/item/delete/{title}` | Deletes a task by its title from the URI path. |
