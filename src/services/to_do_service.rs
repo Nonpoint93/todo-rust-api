@@ -144,3 +144,41 @@ pub fn process_input(item: ItemTypes, command: String, state: &Map<String, Value
         ItemTypes::Done(item) => process_done(item, command, state)
     }
 }
+
+
+/// HTTP POST handler to create a new task.
+/// 
+/// Extracts the task title from the route path as an owned string, generates the 
+/// current UTC timestamp, sets the initial status to `PENDING`, and inserts the 
+/// new record into the database via Diesel.
+/// 
+/// Returns an HTTP `200 OK` with the updated task summary on success, 
+/// or an HTTP `500 Internal Server Error` if a database operation fails.
+pub async fn create(title: web::Path<String>) -> HttpResponse {
+    let connection = &mut establish_connection();
+    let title_str = title.into_inner(); // Extraemos el String directamente sin clonar
+
+    let res = (|| -> Result<SummaryItemResponse, diesel::result::Error> {
+        let current_date = chrono::Utc::now().naive_utc();
+
+        let new_item = NewItem {
+            txt_title: title_str,
+            txt_status: TaskStatus::PENDING.stringify(),
+            dat_date: current_date,
+        };
+
+        diesel::insert_into(to_do_table::table)
+            .values(&new_item)
+            .execute(connection)?;
+
+        get_state()
+    })();
+
+    match res {
+        Ok(summary) => HttpResponse::Ok().json(summary),
+        Err(err) => {
+            eprintln!("[!] Database error {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
