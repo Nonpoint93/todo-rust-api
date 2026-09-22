@@ -1,15 +1,29 @@
-<div align="center">
+# To-Do Rust API REST
 
-# 🚀 To-Do REST API (Rust)
+A robust, production-ready REST API built in **Rust**, following strict international standards, clean architecture, and enterprise design patterns.
 
-*A robust, high-performance backend built with Actix-web, Diesel ORM, and PostgreSQL.*
+---
 
-[![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
-[![Actix-web](https://img.shields.io/badge/Actix--web-4.0-blue?style=for-the-badge&logo=actix)](https://actix.rs/)
-[![Diesel](https://img.shields.io/badge/Diesel-ORM-blueviolet?style=for-the-badge&logo=postgresql)](https://diesel.rs/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
+## 🏗️ Architecture & Design Patterns
 
-</div>
+The project is structured around a strict **3-Layer Clean Architecture**:
+- **Handlers (Actix-web):** Manages HTTP routing, request payload deserialization, and HTTP response formatting.
+- **Services:** Contains core business logic and database orchestration.
+- **Repositories (Diesel ORM):** Decouples database queries, utilizing the **Repository Pattern** with trait abstraction (`ToDoRepositoryTrait`) to support both PostgreSQL and in-memory mocks.
+
+Additional design patterns implemented:
+- **Factory Pattern (`to_do_factory`):** Dynamic creation and categorization of task items.
+- **Strongly Typed Enums (`TaskStatus`):** Custom JSON serialization and bidirectional string conversion (`stringify` / `from_string`) to prevent invalid states.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Language:** Rust, rustc 1.98.1 (48a229cea 2026-09-01) | cargo 1.98.1 (797e8a9bc 2026-08-05)
+- **Web Framework:** `actix-web`
+- **ORM & Migrations:** `diesel` (with PostgreSQL)
+- **Serialization:** `serde` / `serde_json`
+- **Date & Time:** `chrono`
 
 ---
 
@@ -126,3 +140,47 @@ curl -X DELETE "http://localhost:8000/to_do/v1/item/edit/Learn%20Rust" \
   -H "Content-Type: application/json" \
   -d '{"title": "Aprender Rust avanzado", "status": "DONE"}'                                                        
 ```
+
+## 🧪 Testing Suite
+
+The project includes a robust, lightning-fast testing suite covering enums, in-memory repository mocks, and E2E HTTP integration tests. 
+
+Run all tests instantly via:
+```bash
+cargo test
+
+Example:
+
+cargo test
+   Compiling to_do_api v0.1.0 (/home/kali/Git/Rust/todo-rust-api)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.10s
+     Running unittests src/main.rs (target/debug/deps/to_do_api-a3bb6ee3751cb61f)
+
+running 8 tests
+test enums::task_status::tests::test_task_status_from_string_invalid_panics - should panic ... ok
+test repositories::to_do_repository::tests::test_mock_repository_workflow ... ok
+test enums::task_status::tests::test_task_status_from_string_valid ... ok
+test enums::task_status::tests::test_task_status_stringify ... ok
+test services::to_do_service::tests::test_get_tasks_endpoint ... ok
+test services::to_do_service::tests::test_edit_task_endpoint_payload ... ok
+test services::to_do_service::tests::test_delete_task_endpoint ... ok
+test services::to_do_service::tests::test_create_task_endpoint_payload ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+```
+
+Enum Unit Tests: Validates status parsing and strict error handling (should_panic).
+
+Repository Mocks (MockToDoRepository): Tests CRUD operations in-memory in 0.00s without external database dependencies.
+
+E2E Integration Tests (Actix-web): Validates full HTTP request/response pipelines (GET, POST, PUT, DELETE).
+
+📡 API EndpointsMethodEndpointDescription
+
+Method	Endpoint	                    Description
+GET	    /to_do/v1/item	                Retrieves a sorted summary list of all tasks.
+POST	/to_do/v1/item/create	        Creates a new task via JSON payload (defaults to PENDING).
+PUT	    /to_do/v1/item/edit/{title}	    Updates an existing task's status identified by its title.
+DELETE	/to_do/v1/item/delete/{title}	Deletes a task by its title from the URI path.

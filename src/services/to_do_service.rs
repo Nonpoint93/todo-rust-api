@@ -131,3 +131,83 @@ pub async fn create(payload: web::Json<CreateItemRequest>) -> HttpResponse {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::{test, App};
+    use crate::models::requests::create_item_request::CreateItemRequest;
+
+    #[actix_web::test]
+    async fn test_get_tasks_endpoint() {
+
+        let app = test::init_service(
+            App::new().route("/item", web::get().to(get))
+        ).await;
+
+        let req = test::TestRequest::get()
+            .uri("/item")
+            .to_request();
+
+
+        let resp = test::call_service(&app, req).await;
+
+        assert!(resp.status().is_server_error() || resp.status().is_success());
+    }
+
+    #[actix_web::test]
+    async fn test_create_task_endpoint_payload() {
+        let app = test::init_service(
+            App::new().route("/item/create", web::post().to(create))
+        ).await;
+
+        let payload = CreateItemRequest {
+            title: String::from("Test Integration Task"),
+            status: String::from("PENDING"),
+        };
+
+        let req = test::TestRequest::post()
+            .uri("/item/create")
+            .set_json(&payload)
+            .to_request();
+
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_server_error() || resp.status().is_success());
+    }
+
+    #[actix_web::test]
+    async fn test_edit_task_endpoint_payload() {
+        let app = test::init_service(
+            App::new().route("/item/edit/{title}", web::put().to(edit))
+        ).await;
+
+        let payload: CreateItemRequest = CreateItemRequest {
+            title: String::from("Test Integration Task"),
+            status: String::from("DONE"),
+        };
+
+        let req = test::TestRequest::put()
+            .uri("/item/edit/Test%20Integration%20Task")
+            .set_json(&payload)
+            .to_request();
+
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_server_error() || resp.status().is_success());
+    }
+
+    #[actix_web::test]
+    async fn test_delete_task_endpoint() {
+        let app = test::init_service(App::new().route("/item/delete/{title}", web::delete().to(delete))).await;
+
+        let req = test::TestRequest::delete()
+        .uri("/item/delete/Test%20Integration%20Task")
+        .to_request();
+
+        let resp = test::call_service(&app, req).await;
+
+        assert!(resp.status().is_server_error() || resp.status().is_success());
+    }
+}

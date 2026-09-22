@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
-#[derive(Queryable, Selectable, Identifiable)]
+#[derive(Queryable, Selectable, Identifiable, Debug, Clone)]
 #[diesel(table_name = crate::configuration::schema::to_do_table)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Item {
