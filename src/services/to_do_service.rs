@@ -5,23 +5,19 @@
 //! handling Actix-web endpoints.
 
 use crate::configuration::database::establish_connection;
-use crate::configuration::schema::to_do_table::{self, txt_status, txt_title};
+use crate::configuration::schema::to_do_table::{self};
 use crate::enums::item_types::{to_do_factory, ItemTypes};
 use crate::enums::task_status::TaskStatus;
-use crate::models::done::Done;
+
 use crate::models::entities::item::item::Item;
-use crate::models::jwtoken::JwToken;
-use crate::models::pending::Pending;
-use crate::models::responses::get_item_response::GetItemResponse;
+
+use crate::models::requests::create_item_request::CreateItemRequest;
 use crate::models::responses::summary_item_response::SummaryItemResponse;
-use crate::models::traits::create::Create;
-use crate::models::traits::delete::Delete;
-use crate::models::traits::edit::Edit;
-use crate::models::traits::get::Get;
+
+use crate::repositories::to_do_repository;
 use diesel::prelude::*;
 use actix_web::{web, HttpResponse, Responder};
-use serde_json::Value;
-use serde_json::Map;
+use crate::models::entities::item::new_item::NewItem;
 
 /// HTTP GET handler to retrieve the summary of all tasks.
 /// 
@@ -41,22 +37,13 @@ pub async fn get() -> impl Responder {
 /// 
 /// Requires a valid JWT token and a JSON body with the item title 
 /// and its new status.
-pub async fn edit(get_item_response: web::Json<GetItemResponse>, token: JwToken) -> HttpResponse {
-    println!("[+] Here is the message in the token: {}", token.message);
+pub async fn edit(title_path: web::Path<String>, payload: web::Json<CreateItemRequest>) -> HttpResponse {
 
     let connection = &mut establish_connection();
+    let title = title_path.into_inner();
 
     let res = (|| -> Result<SummaryItemResponse, diesel::result::Error> {
-        let results: Vec<Item> = diesel::QueryDsl::filter(
-            to_do_table::table, txt_title.eq(&get_item_response.title)
-        ).load(connection)?;
-
-        for result in results {
-            diesel::update(to_do_table::table.find(result.id))
-            .set(txt_status.eq(&get_item_response.status))
-            .returning(Item::as_returning())
-            .get_result(connection)?;
-        }
+        to_do_repository::update_status_by_title(connection, &title, &payload.status)?;
 
         get_state()
     })();
@@ -73,15 +60,12 @@ pub async fn edit(get_item_response: web::Json<GetItemResponse>, token: JwToken)
 /// HTTP handler to delete a task by its title.
 /// 
 /// Requires an authorized JWT token.
-pub async fn delete(get_item_response: web::Json<GetItemResponse>, _token: JwToken) -> HttpResponse {
+pub async fn delete(title_path: web::Path<String>) -> HttpResponse {
     let connection = &mut establish_connection();
 
     let res = (|| -> Result<SummaryItemResponse, diesel::result::Error> {
-        let items: Vec<Item> = diesel::QueryDsl::filter(
-            to_do_table::table, txt_title.eq(&get_item_response.title)
-        ).load(connection)?;
 
-        let _ = diesel::delete(&items[0]).execute(connection);
+        to_do_repository::delete_by_title(connection, &title_path.into_inner())?;
 
         get_state()
     })();
@@ -112,39 +96,6 @@ pub fn get_state() -> Result<SummaryItemResponse, diesel::result::Error> {
     Ok(SummaryItemResponse::new(array_buffer))
 }
 
-/// Processes specific commands for pending tasks.
-fn process_pending(item: Pending, command: String, state: &Map<String, Value>) {
-    let mut state = state.clone();
-    match command.as_str() {
-        "get" => item.get(&item.super_struct.title, &state),
-        "create" => item.create(&item.super_struct.title,
-                                &item.super_struct.status.stringify(), &mut state),
-        "edit" => item.set_to_done(&item.super_struct.title,
-                                   &mut state),
-        _ => println!("command: {} not supported", command)
-    }
-}
-
-/// Processes specific commands for completed tasks.
-fn process_done(item: Done, command: String, state: &Map<String, Value>) {
-    let mut state = state.clone();
-    match command.as_str() {
-        "get" => item.get(&item.super_struct.title, &state),
-        "delete" => item.delete(&item.super_struct.title, &mut state),
-        "edit" => item.set_to_pending(&item.super_struct.title, &mut state),
-        _ => println!("command: {} not supported", command)
-    }
-}
-
-/// Dispatches the received command to the corresponding task type (Pending or Done).
-pub fn process_input(item: ItemTypes, command: String, state: &Map<String, Value>) {
-    match item {
-        ItemTypes::Pending(item) => process_pending(item, command, state),
-        ItemTypes::Done(item) => process_done(item, command, state)
-    }
-}
-
-
 /// HTTP POST handler to create a new task.
 /// 
 /// Extracts the task title from the route path as an owned string, generates the 
@@ -153,9 +104,10 @@ pub fn process_input(item: ItemTypes, command: String, state: &Map<String, Value
 /// 
 /// Returns an HTTP `200 OK` with the updated task summary on success, 
 /// or an HTTP `500 Internal Server Error` if a database operation fails.
-pub async fn create(title: web::Path<String>) -> HttpResponse {
-    let connection = &mut establish_connection();
-    let title_str = title.into_inner(); // Extraemos el String directamente sin clonar
+pub async fn create(payload: web::Json<CreateItemRequest>) -> HttpResponse {
+
+    let connection: &mut PgConnection = &mut establish_connection();
+    let title_str: String = payload.title.clone();
 
     let res = (|| -> Result<SummaryItemResponse, diesel::result::Error> {
         let current_date = chrono::Utc::now().naive_utc();
@@ -166,9 +118,7 @@ pub async fn create(title: web::Path<String>) -> HttpResponse {
             dat_date: current_date,
         };
 
-        diesel::insert_into(to_do_table::table)
-            .values(&new_item)
-            .execute(connection)?;
+        to_do_repository::insert(connection, &new_item)?;
 
         get_state()
     })();

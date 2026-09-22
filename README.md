@@ -75,3 +75,54 @@ cargo run
 ```
 
 ✨ The API will be up and running at: http://127.0.0.1:8000
+
+
+### Examples
+
+### 1. GET All tasks
+
+```bash
+curl -X GET http://localhost:8000/to_do/v1/item \
+  -H "Content-Type: application/json"
+
+
+Response:
+
+{"pending_items":[],"done_items":[],"pending_item_count":0,"done_item_count":0}                                                                             
+```
+
+
+### 2. Create a new task
+
+```bash
+curl -X POST http://localhost:8000/to_do/v1/item/create \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Learn Rust", "status": "PENDING"}'
+
+Response:
+
+{"pending_items":[{"title":"Learn Rust","status":{"status":"PENDING"}}],"done_items":[],"pending_item_count":1,"done_item_count":0}                                                                       
+```
+
+
+
+### 3. Edit a task status
+
+```bash
+curl -X PUT "http://localhost:8000/to_do/v1/item/edit/Learn%20Rust" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Aprender Rust avanzado", "status": "DONE"}'
+
+Response:
+
+{"pending_items":[],"done_items":[{"title":"Learn Rust","status":{"status":"DONE"}}],"pending_item_count":0,"done_item_count":1}                                                                   
+```
+
+
+### 4. Delete a task by title
+
+```bash
+curl -X DELETE "http://localhost:8000/to_do/v1/item/edit/Learn%20Rust" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Aprender Rust avanzado", "status": "DONE"}'                                                        
+```
