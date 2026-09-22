@@ -10,7 +10,6 @@ use crate::enums::item_types::{to_do_factory, ItemTypes};
 use crate::enums::task_status::TaskStatus;
 use crate::models::done::Done;
 use crate::models::entities::item::item::Item;
-use crate::models::entities::item::new_item::NewItem;
 use crate::models::jwtoken::JwToken;
 use crate::models::pending::Pending;
 use crate::models::responses::get_item_response::GetItemResponse;

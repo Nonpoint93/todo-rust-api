@@ -7,4 +7,4 @@ file = "src/configuration/schema.rs"
 custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
 
 [migrations_directory]
-dir = "/home/kali/Rust/actix_web_project/to_do_api/migrations"
+dir = "/home/kali/Git/Rust/todo-rust-api/migrations"
