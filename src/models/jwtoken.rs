@@ -1,28 +1,27 @@
 use actix_web::dev::Payload;
-use actix_web::{FromRequest, HttpRequest, Error};
-use futures::future::Ready;
+use actix_web::{Error, FromRequest, HttpRequest};
 use futures::future::ok;
+use futures::future::Ready;
 
-pub struct JwToken{
-    pub message: String
+pub struct JwToken {
+    pub message: String,
 }
 
-impl FromRequest for JwToken{
+impl FromRequest for JwToken {
     type Error = Error;
     type Future = Ready<Result<JwToken, Error>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        
-        match req.headers().get("token"){
+        match req.headers().get("token") {
             Some(data) => {
-                let token = JwToken{
-                    message: data.to_str().unwrap().to_string()
+                let token = JwToken {
+                    message: data.to_str().unwrap().to_string(),
                 };
                 ok(token)
-            },
+            }
             None => {
-                let token = JwToken{
-                    message: String::from("Nothing found")
+                let token = JwToken {
+                    message: String::from("Nothing found"),
                 };
                 ok(token)
             }

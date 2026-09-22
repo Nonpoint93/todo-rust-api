@@ -8,5 +8,5 @@ pub struct Item {
     pub id: i32,
     pub txt_title: String,
     pub txt_status: String,
-    pub dat_date: NaiveDateTime
+    pub dat_date: NaiveDateTime,
 }

@@ -1,7 +1,7 @@
 //! # To-Do Service Module
-//! 
+//!
 //! Contains the core business logic for task management,
-//! interacting directly with the database via Diesel and 
+//! interacting directly with the database via Diesel and
 //! handling Actix-web endpoints.
 
 use crate::configuration::database::establish_connection;
@@ -9,18 +9,18 @@ use crate::configuration::schema::to_do_table::{self};
 use crate::enums::item_types::{to_do_factory, ItemTypes};
 use crate::enums::task_status::TaskStatus;
 
-use crate::models::entities::item::item::Item;
+use crate::models::entities::items::item::Item;
 
 use crate::models::requests::create_item_request::CreateItemRequest;
 use crate::models::responses::summary_item_response::SummaryItemResponse;
 
+use crate::models::entities::items::new_item::NewItem;
 use crate::repositories::to_do_repository;
-use diesel::prelude::*;
 use actix_web::{web, HttpResponse, Responder};
-use crate::models::entities::item::new_item::NewItem;
+use diesel::prelude::*;
 
 /// HTTP GET handler to retrieve the summary of all tasks.
-/// 
+///
 /// Returns a JSON containing the current state of items or a 500 Internal Server Error
 /// if the database connection fails.
 pub async fn get() -> impl Responder {
@@ -34,11 +34,13 @@ pub async fn get() -> impl Responder {
 }
 
 /// HTTP handler to edit the status of an existing task.
-/// 
-/// Requires a valid JWT token and a JSON body with the item title 
+///
+/// Requires a valid JWT token and a JSON body with the item title
 /// and its new status.
-pub async fn edit(title_path: web::Path<String>, payload: web::Json<CreateItemRequest>) -> HttpResponse {
-
+pub async fn edit(
+    title_path: web::Path<String>,
+    payload: web::Json<CreateItemRequest>,
+) -> HttpResponse {
     let connection = &mut establish_connection();
     let title = title_path.into_inner();
 
@@ -58,13 +60,12 @@ pub async fn edit(title_path: web::Path<String>, payload: web::Json<CreateItemRe
 }
 
 /// HTTP handler to delete a task by its title.
-/// 
+///
 /// Requires an authorized JWT token.
 pub async fn delete(title_path: web::Path<String>) -> HttpResponse {
     let connection = &mut establish_connection();
 
     let res = (|| -> Result<SummaryItemResponse, diesel::result::Error> {
-
         to_do_repository::delete_by_title(connection, &title_path.into_inner())?;
 
         get_state()
@@ -79,33 +80,34 @@ pub async fn delete(title_path: web::Path<String>) -> HttpResponse {
     }
 }
 
-/// Queries the database and constructs a `SummaryItemResponse` 
+/// Queries the database and constructs a `SummaryItemResponse`
 /// containing all tasks ordered by ID in ascending order.
 pub fn get_state() -> Result<SummaryItemResponse, diesel::result::Error> {
     let mut array_buffer: Vec<crate::enums::item_types::ItemTypes> = Vec::new();
     let mut connection: diesel::PgConnection = establish_connection();
-    
-    let items: Vec<Item> = to_do_table::table.order(to_do_table::columns::id.asc()).load(&mut connection)?;
+
+    let items: Vec<Item> = to_do_table::table
+        .order(to_do_table::columns::id.asc())
+        .load(&mut connection)?;
 
     for item in items {
         let status: TaskStatus = TaskStatus::from_string(item.txt_status);
         let item: ItemTypes = to_do_factory(&item.txt_title, status);
         array_buffer.push(item);
     }
-    
+
     Ok(SummaryItemResponse::new(array_buffer))
 }
 
 /// HTTP POST handler to create a new task.
-/// 
-/// Extracts the task title from the route path as an owned string, generates the 
-/// current UTC timestamp, sets the initial status to `PENDING`, and inserts the 
+///
+/// Extracts the task title from the route path as an owned string, generates the
+/// current UTC timestamp, sets the initial status to `PENDING`, and inserts the
 /// new record into the database via Diesel.
-/// 
-/// Returns an HTTP `200 OK` with the updated task summary on success, 
+///
+/// Returns an HTTP `200 OK` with the updated task summary on success,
 /// or an HTTP `500 Internal Server Error` if a database operation fails.
 pub async fn create(payload: web::Json<CreateItemRequest>) -> HttpResponse {
-
     let connection: &mut PgConnection = &mut establish_connection();
     let title_str: String = payload.title.clone();
 
@@ -132,24 +134,17 @@ pub async fn create(payload: web::Json<CreateItemRequest>) -> HttpResponse {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, App};
     use crate::models::requests::create_item_request::CreateItemRequest;
+    use actix_web::{test, App};
 
     #[actix_web::test]
     async fn test_get_tasks_endpoint() {
+        let app = test::init_service(App::new().route("/item", web::get().to(get))).await;
 
-        let app = test::init_service(
-            App::new().route("/item", web::get().to(get))
-        ).await;
-
-        let req = test::TestRequest::get()
-            .uri("/item")
-            .to_request();
-
+        let req = test::TestRequest::get().uri("/item").to_request();
 
         let resp = test::call_service(&app, req).await;
 
@@ -158,9 +153,8 @@ mod tests {
 
     #[actix_web::test]
     async fn test_create_task_endpoint_payload() {
-        let app = test::init_service(
-            App::new().route("/item/create", web::post().to(create))
-        ).await;
+        let app =
+            test::init_service(App::new().route("/item/create", web::post().to(create))).await;
 
         let payload = CreateItemRequest {
             title: String::from("Test Integration Task"),
@@ -173,15 +167,14 @@ mod tests {
             .to_request();
 
         let resp = test::call_service(&app, req).await;
-        
+
         assert!(resp.status().is_server_error() || resp.status().is_success());
     }
 
     #[actix_web::test]
     async fn test_edit_task_endpoint_payload() {
-        let app = test::init_service(
-            App::new().route("/item/edit/{title}", web::put().to(edit))
-        ).await;
+        let app =
+            test::init_service(App::new().route("/item/edit/{title}", web::put().to(edit))).await;
 
         let payload: CreateItemRequest = CreateItemRequest {
             title: String::from("Test Integration Task"),
@@ -194,17 +187,19 @@ mod tests {
             .to_request();
 
         let resp = test::call_service(&app, req).await;
-        
+
         assert!(resp.status().is_server_error() || resp.status().is_success());
     }
 
     #[actix_web::test]
     async fn test_delete_task_endpoint() {
-        let app = test::init_service(App::new().route("/item/delete/{title}", web::delete().to(delete))).await;
+        let app =
+            test::init_service(App::new().route("/item/delete/{title}", web::delete().to(delete)))
+                .await;
 
         let req = test::TestRequest::delete()
-        .uri("/item/delete/Test%20Integration%20Task")
-        .to_request();
+            .uri("/item/delete/Test%20Integration%20Task")
+            .to_request();
 
         let resp = test::call_service(&app, req).await;
 
