@@ -177,6 +177,26 @@ Repository Mocks (MockToDoRepository): Tests CRUD operations in-memory in 0.00s 
 
 E2E Integration Tests (Actix-web): Validates full HTTP request/response pipelines (GET, POST, PUT, DELETE).
 
+
+🧹 Code Quality & Standards
+
+The codebase strictly adheres to official Rust idiomatic guidelines and passes advanced static analysis with zero warnings:
+
+    Formatting (cargo fmt): Automatically enforces uniform, community-standard code styling across all modules.
+
+    Linting (cargo clippy): Vetted under strict rules to ensure complete absence of anti-patterns or inefficiencies:
+
+```bash
+cargo clippy -- -D warnings
+
+Example:
+
+cargo clippy -- -D warnings
+    Checking to_do_api v0.1.0 (/home/kali/Git/Rust/todo-rust-api)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.20s
+
+```
+
 📡 API EndpointsMethodEndpointDescription
 
 | Method | Endpoint | Description |

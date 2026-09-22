@@ -6,17 +6,16 @@ use diesel::prelude::Insertable;
 pub struct NewItem {
     pub txt_title: String,
     pub txt_status: String,
-    pub dat_date: NaiveDateTime
+    pub dat_date: NaiveDateTime,
 }
-
 
 impl NewItem {
     pub fn new(txt_title: String) -> NewItem {
         let now = Utc::now().naive_local();
-        return NewItem{
+        NewItem {
             txt_title,
             txt_status: String::from("PENDING"),
-            dat_date: now
+            dat_date: now,
         }
     }
 }
