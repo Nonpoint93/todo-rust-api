@@ -7,6 +7,14 @@ use crate::models::entities::item::item::Item;
 use crate::models::entities::item::new_item::NewItem;
 use diesel::prelude::*;
 
+pub trait ToDoRepositoryTrait {
+    fn find_all(&mut self) -> Result<Vec<Item>, String>;
+    fn insert(&mut self, new_item: &NewItem) -> Result<usize, String>;
+    fn update_status(&mut self, title: &str, status: &str) -> Result<usize, String>;
+    fn delete_by_title(&mut self, title: &str) -> Result<usize, String>;
+}
+
+
 /// Retrieves all to-do items from the database, ordered by ID ascending.
 pub fn find_all(connection: &mut PgConnection) -> Result<Vec<Item>, diesel::result::Error> {
     to_do_table::table
@@ -53,4 +61,87 @@ pub fn delete_by_title(connection: &mut PgConnection, title: &str) -> Result<usi
     }
 
     diesel::delete(&items[0]).execute(connection)
+}
+
+
+
+#[cfg(test)]
+pub struct MockToDoRepository {
+    pub items: Vec<Item>,
+}
+
+#[cfg(test)]
+impl ToDoRepositoryTrait for MockToDoRepository {
+    fn find_all(&mut self) -> Result<Vec<Item>, String> {
+        Ok(self.items.clone())
+    }
+
+    fn insert(&mut self, new_item: &NewItem) -> Result<usize, String> {
+        let new_id = (self.items.len() as i32) + 1;
+        let item = Item {
+            id: new_id,
+            txt_title: new_item.txt_title.clone(),
+            txt_status: new_item.txt_status.clone(),
+            dat_date: new_item.dat_date,
+        };
+        self.items.push(item);
+        Ok(1)
+    }
+
+    fn update_status(&mut self, title: &str, status: &str) -> Result<usize, String> {
+        let mut updated = 0;
+        for item in &mut self.items {
+            if item.txt_title == title {
+                item.txt_status = status.to_string();
+                updated += 1;
+            }
+        }
+        Ok(updated)
+    }
+
+    fn delete_by_title(&mut self, title: &str) -> Result<usize, String> {
+        let initial_len = self.items.len();
+        self.items.retain(|item| item.txt_title != title);
+        let deleted = initial_len - self.items.len();
+        Ok(deleted)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::entities::item::new_item::NewItem;
+    use chrono::Utc;
+
+    #[test]
+    fn test_mock_repository_workflow() {
+        let mut mock_repo = MockToDoRepository { items: vec![] };
+
+        let new_task = NewItem {
+            txt_title: String::from("Buy a Coffee"),
+            txt_status: String::from("PENDING"),
+            dat_date: Utc::now().naive_utc(),
+        };
+
+        let insert_res = mock_repo.insert(&new_task);
+        assert!(insert_res.is_ok());
+
+        let items = mock_repo.find_all().unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].txt_title, "Buy a Coffee");
+        assert_eq!(items[0].txt_status, "PENDING");
+
+        let update_res = mock_repo.update_status("Buy a Coffee", "DONE");
+        assert!(update_res.is_ok());
+
+        let items_updated = mock_repo.find_all().unwrap();
+        assert_eq!(items_updated[0].txt_status, "DONE");
+
+        let delete_res = mock_repo.delete_by_title("Buy a Coffee");
+        assert!(delete_res.is_ok());
+
+        let items_final = mock_repo.find_all().unwrap();
+        assert!(items_final.is_empty());
+    }
 }
